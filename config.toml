@@ -1,0 +1,5 @@
+[llm]
+#model = "..."
+#base_url = "..."
+#api_key = "..."
+#temperature = 0.5

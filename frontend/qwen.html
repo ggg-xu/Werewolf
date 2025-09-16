@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>狼人杀</title>
+  <style>
+    body {
+      font-family: "Microsoft YaHei", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #2c3e50;
+      color: #ecf0f1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 60%;
+      margin: 20px auto;
+      background: #34495e;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    header {
+      background: #e74c3c;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    header img {
+      width: 40px;
+      height: 40px;
+      margin-right: 10px;
+    }
+
+    .controls {
+      padding: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: #3498db;
+      border: none;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background: #2980b9;
+    }
+
+    .status {
+      text-align: center;
+      padding: 10px;
+      background: #2c3e50;
+      font-size: 1.1rem;
+      border-bottom: 1px solid #7f8c8d;
+    }
+
+    .chat-container {
+      height: 300px;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message-block {
+      padding: 10px 15px;
+      border-radius: 12px;
+      margin-bottom: 5px;
+      line-height: 1.5;
+    }
+
+    /* ########### 新增/调整样式 ########### */
+    /* 1. 消息块布局规则 */
+    .message-block.speak {
+      align-self: flex-start; /* 居左 */
+      /*width: 70%; !* 宽度70% *!*/
+      max-width: 70%;
+      background: #27ae60; /* 保留原有背景色 */
+      color: white; /* 保留原有文字色 */
+    }
+    .message-block.user {
+      align-self: flex-end; /* 居右 */
+      /*width: 70%; !* 宽度70% *!*/
+      max-width: 70%;
+      background: #3498db; /* 保留原有背景色 */
+      color: white; /* 保留原有文字色 */
+    }
+    .message-block.user_speak,
+    .message-block.act,
+    .message-block.conversation,
+    .message-block.voting {
+      /*align-self: center; !* 居中 *!*/
+      /*width: 100%; !* 宽度100% *!*/
+      color: white;
+      align-self: center;
+      text-align: center;
+      max-width: 70%;
+    }
+    .message-block.display {
+      /*background: #7f8c8d;*/
+      color: white;
+      align-self: center;
+      text-align: center;
+      max-width: 70%; /* 保留原有display样式，与新规则不冲突 */
+    }
+
+    /* 2. 系统信息样式 */
+    .system-info {
+      width: 96%;
+      text-align: center; /* 文字居中 */
+      padding: 5px; /* 内边距10px */
+    }
+
+    /* 3. 发言头部样式 */
+    .speak-header {
+      font-weight: bold;
+      margin-bottom: 4px;
+      opacity: 0.9;
+      text-align: left; /* 文字居左 */
+      display: block; /* 单独一行（div默认block，显式声明确保兼容性） */
+    }
+    .my-speak-header {
+      font-weight: bold;
+      margin-bottom: 4px;
+      opacity: 0.9;
+      text-align: right; /* 文字居右 */
+      display: block; /* 单独一行 */
+    }
+
+    /* 4. 发言内容样式 */
+    .speak-content {
+      width: 100%; /* 宽度100% */
+      margin-top: 10px; /* 上边距10px */
+    }
+    /* ########### 样式修改结束 ########### */
+
+    .actions {
+      padding: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      background: #2c3e50;
+    }
+
+    select, input[type="text"], textarea {
+      padding: 10px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      /* width: 200px; */ /* 移除固定宽度 */
+    }
+
+    input[type="text"] {
+      flex-grow: 1;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="http://127.0.0.1:8000/static/werewolf.png" alt="狼头" />
+      狼人杀
+    </header>
+
+    <div class="controls">
+      <button id="startBtn" class="btn">开始游戏</button>
+      <button id="resetBtn" class="btn">重新开始</button>
+      <button id="endBtn" class="btn">结束游戏</button>
+      <button id="reviewBtn" class="btn">复盘</button>
+    </div>
+
+    <div class="status" id="status">
+      未开始游戏
+    </div>
+
+    <div class="chat-container" id="chat"></div>
+
+    <div class="actions">
+      <div style="display: flex; width: 100%;">
+        <select id="actionSelect" class="disabled" style="flex: 1; margin-right: 5px;">
+          <option value="">选择操作</option>
+        </select>
+
+        <select id="targetSelect" class="disabled" style="flex: 1; margin-right: 5px;">
+          <option value="">选择对象</option>
+        </select>
+
+        <select id="voteSelect" class="disabled" style="flex: 1;">
+          <option value="">选择投票</option>
+        </select>
+      </div>
+
+      <div style="display: block; width: 100%; margin-top: 10px;">
+       <textarea
+        id="speakInput"
+        name="feedback"
+        rows="5"
+        cols="45"
+        placeholder="请输入您的发言或私聊内容"
+        maxlength="200"
+        disabled
+        style="display:block;width: 97.5%;"></textarea> <!-- 添加宽度样式 -->
+      </div>
+      <button id="submitBtn" class="btn" style="display:block;width:100%; height: 40px; margin-left: -1px;">提交</button>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let gameId = null;
+    let eventSource = null;
+    let userRole = '';
+    let alivePlayers = [];
+    let actions = [];
+    let targets = {};
+    let votes = [];
+    let day = null;
+    let phase = null;
+    let url = 'http://127.0.0.1:8000';
+
+    // DOM 元素
+    const chatEl = document.getElementById('chat');
+    const statusEl = document.getElementById('status');
+    const actionSelect = document.getElementById('actionSelect');
+    const targetSelect = document.getElementById('targetSelect');
+    const voteSelect = document.getElementById('voteSelect');
+    const speakInput = document.getElementById('speakInput');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const endBtn = document.getElementById('endBtn');
+    const reviewBtn = document.getElementById('reviewBtn');
+
+    // 根据行动选择更改行动对象
+    actionSelect.addEventListener('change', function (){
+      const selectedAction = this.value;
+      // 仅在私聊时允许输入内容
+      speakInput.disabled = selectedAction !== 'conversation';
+      targetSelect.innerHTML = '';
+      if (selectedAction && targets[selectedAction]){
+        targetSelect.disabled = false;
+        // 添加默认选项
+        const defaultTarget = document.createElement('option');
+        defaultTarget.value = '';
+        defaultTarget.textContent = '选择对象';
+        targetSelect.appendChild(defaultTarget);
+
+        targets[selectedAction].forEach(item => {
+          const target = document.createElement('option');
+          target.value = item;
+          target.textContent = `玩家` + item;
+          targetSelect.appendChild(target);
+        });
+      } else {
+        targetSelect.disabled = true;
+         // 确保始终有默认选项
+        const defaultTarget = document.createElement('option');
+        defaultTarget.value = '';
+        defaultTarget.textContent = '选择操作';
+        targetSelect.appendChild(defaultTarget);
+      }
+    });
+
+    // 工具函数
+    // 添加信息
+    function appendMessage(type, content, playerId = null, mid=null) {
+      const div = document.createElement('div');
+      div.className = `message-block ${type}`;
+
+      if (type === 'speak') {
+        const header = document.createElement('div');
+        header.className = 'speak-header';
+        header.textContent = `玩家${playerId}`;
+        div.appendChild(header);
+
+        const body = document.createElement('div');
+        body.id = mid;
+        body.className = 'speak-content';
+        body.textContent = content;
+        div.appendChild(body);
+      } else if (type === 'user_speak') {
+        const system = document.createElement('div');
+        system.className = 'system-info';
+        system.textContent = content;
+        div.appendChild(system);
+      } else if (type === 'act'){
+        const system = document.createElement('div');
+        system.className = 'system-info';
+        system.textContent = content;
+        div.appendChild(system);
+      } else if (type === 'conversation'){
+        // 显示系统提示
+        const systemInfo = document.createElement('div');
+        systemInfo.className = 'system-info';
+        systemInfo.textContent = `玩家${playerId}对你说悄悄话`;
+        div.appendChild(systemInfo);
+        chatEl.appendChild(div);
+        chatEl.scrollTop = chatEl.scrollHeight;
+
+        // 显示实际消息内容
+        const div_tmp = document.createElement('div');
+        div_tmp.className = `message-block speak`;
+        const header = document.createElement('div');
+        header.className = 'speak-header';
+        header.textContent = `玩家${playerId}`;
+        div_tmp.appendChild(header);
+
+        const body = document.createElement('div');
+        body.textContent = content;
+        body.className = 'speak-content';
+        div_tmp.appendChild(body);
+        chatEl.appendChild(div_tmp);
+        chatEl.scrollTop = chatEl.scrollHeight;
+        return; // 防止重复添加
+      } else if (type === 'voting'){
+        const system = document.createElement('div');
+        system.className = 'system-info';
+        system.textContent = content;
+        div.appendChild(system);
+      } else if (type === 'user'){ // 用户自己发送的消息
+        const header = document.createElement('div');
+        header.className = 'my-speak-header';
+        header.textContent = `我`;
+        div.appendChild(header);
+
+        const body = document.createElement('div');
+        body.textContent = content;
+        body.className = 'speak-content';
+        div.appendChild(body);
+      } else if (type === 'display') { // 显示类信息
+         const system = document.createElement('div');
+         system.className = 'system-info';
+         system.textContent = content;
+         div.appendChild(system);
+      }
+
+      chatEl.appendChild(div);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function disableAll() {
+      actionSelect.innerHTML = ''; // 清空选项
+      const defaultAction = document.createElement('option');
+      defaultAction.value = '';
+      defaultAction.textContent = '禁止操作';
+      actionSelect.appendChild(defaultAction);
+      actionSelect.disabled = true;
+
+      targetSelect.innerHTML = ''; // 清空选项
+      const defaultTarget = document.createElement('option');
+      defaultTarget.value = '';
+      defaultTarget.textContent = '禁止选择对象';
+      targetSelect.appendChild(defaultTarget);
+      targetSelect.disabled = true;
+
+      voteSelect.innerHTML = ''; // 清空选项
+      const defaultVote = document.createElement('option');
+      defaultVote.value = '';
+      defaultVote.textContent = '禁止投票';
+      voteSelect.appendChild(defaultVote);
+      voteSelect.disabled = true;
+
+      speakInput.value = '';
+      speakInput.disabled = true;
+    }
+
+    function enableSpeak() {
+      disableAll();
+      speakInput.disabled = false;
+      speakInput.value = '';
+      speakInput.placeholder = "请输入您的发言";
+    }
+
+    function enableVote() {
+      disableAll();
+      voteSelect.disabled = false;
+      voteSelect.innerHTML = '';  // 清空原有选项
+      // 添加默认选项
+      const defaultVote = document.createElement('option');
+      defaultVote.value = '';
+      defaultVote.textContent = '选择投票目标';
+      voteSelect.appendChild(defaultVote);
+      votes.forEach(item => {
+        const vote = document.createElement('option');
+        vote.value = item;
+        vote.textContent = `投给玩家${item}`;
+        voteSelect.appendChild(vote);
+      });
+    }
+
+    function enableAct(){
+      disableAll();
+      actionSelect.disabled = false;
+      actionSelect.innerHTML = ''; // 清空选项
+      const defaultAction = document.createElement('option');
+      defaultAction.value = '';
+      defaultAction.textContent = '选择操作';
+      actionSelect.appendChild(defaultAction);
+
+      const map = new Map([
+              ["kill", "杀死"],
+              ["conversation", "交流"],
+              ["check", "查验身份"],
+              ["resurrection", "复活"],
+              ["none", "什么也不做"]
+      ]);
+      actions.forEach(item => {
+        const action = document.createElement('option');
+        action.value = item;
+        action.textContent = map.get(item) || item; // 使用映射或默认值
+        actionSelect.appendChild(action);
+      });
+
+      // 重置 targetSelect 选项
+      targetSelect.innerHTML = '';
+      const defaultTarget = document.createElement('option');
+      defaultTarget.value = '';
+      defaultTarget.textContent = '选择操作';
+      targetSelect.appendChild(defaultTarget);
+      targetSelect.disabled = true;
+    }
+
+    function closeGame(content = '') {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      disableAll();
+      statusEl.textContent = '游戏已结束!' + content;
+    }
+
+    // 初始化游戏状态
+    function initGameState() {
+        actions = [];
+        targets = {};
+        votes = [];
+        day = null;
+        phase = null;
+        alivePlayers = [];
+        disableAll(); // 确保初始状态是禁用的
+    }
+
+    function format_role(role){
+      role_map = {
+        'werewolf': '狼人',
+        'villager': '平民',
+        'seer': '预言家',
+        'witch': '女巫'
+      };
+      return role_map[role];
+    }
+
+    function format_phase(phase){
+      phase_map = {
+        'night': '夜晚',
+        'day': '白天',
+        'discussion': '讨论环节',
+        'voting': '投票环节',
+        'count_votes': '计票环节'
+      };
+      return phase_map[phase];
+    }
+
+    // 开始游戏
+    async function startGame() {
+      try {
+        const res = await fetch(url + '/game/start', { method: 'GET' });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || '未知错误');
+        }
+        gameId = data.game_id;
+        userRole = format_role(data.user_role);
+
+        statusEl.textContent = `第1天 夜晚 | 你的身份是 ${userRole}`;
+        day = 1;
+        phase = '夜晚';
+        initGameState(); // 重置游戏状态
+        startStreaming();
+      } catch (err) {
+        alert('游戏启动失败: ' + err.message);
+        console.error('启动游戏错误:', err);
+      }
+    }
+
+    // 重启游戏
+    async function resetGame() {
+      if (!gameId) return;
+      try {
+        const res = await fetch(url + `/game/reset/${gameId}`, { method: 'GET' });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || '未知错误');
+        }
+        userRole = format_role(data.user_role);
+        statusEl.textContent = `第1天 夜晚 | 你的身份是 ${userRole}`;
+        day = 1;
+        phase = '夜晚';
+        chatEl.innerHTML = '';
+        initGameState(); // 重置游戏状态
+        startStreaming();
+      } catch (err) {
+        alert('重置失败: ' + err.message);
+        console.error('重置游戏错误:', err);
+      }
+    }
+
+    // 结束游戏
+    async function endGame() {
+      if (!gameId) return;
+      try {
+        const res = await fetch(url + `/game/end/${gameId}`, { method: 'GET' });
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.detail || '未知错误');
+        }
+        closeGame();
+      } catch (err) {
+        alert('结束失败: ' + err.message);
+        console.error('结束游戏错误:', err);
+      }
+    }
+
+    // 获取复盘
+    async function reviewGame() {
+      if (!gameId) return;
+      try {
+        const res = await fetch(url + `/game/review/${gameId}`);
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.detail || '未知错误');
+        }
+        console.log('复盘数据:', data.events);
+        alert('复盘已打印到控制台');
+      } catch (err) {
+        alert('获取复盘失败: ' + err.message);
+        console.error('获取复盘错误:', err);
+      }
+    }
+
+    // 启动 SSE 流
+    function startStreaming() {
+      if (eventSource) eventSource.close();
+
+      eventSource = new EventSource(url + `/game/playing/${gameId}`);
+
+      eventSource.onmessage = function (event) {
+        try {
+            const data = JSON.parse(event.data);
+            console.log("收到事件:", data); // 调试用
+
+            if (data?.type === 'display') {
+              appendMessage('display', data.content);
+              day = data.day;
+              phase = format_phase(data.phase);
+              alivePlayers = data.alive || [];
+              statusEl.textContent = `第${day}天 ${phase} | 你的身份是 ${userRole}`;
+
+            } else if (data?.type === 'speak') {
+               // 处理流式发言
+               const mid = data.mid;
+               let messageBlock = document.getElementById(mid);
+               if (messageBlock === null) {
+                   // 如果是新消息块，则创建
+                   appendMessage('speak', data.content, data.id, data.mid);
+               } else {
+                   // 如果是更新现有消息块
+                   if (data.content !== 'FINISH') {
+                     messageBlock.textContent += data.content;
+                   }
+               }
+               chatEl.scrollTop = chatEl.scrollHeight; // 滚动到底部
+
+            } else if (data?.type === 'user_speak'){
+                // 启用发言输入
+                enableSpeak();
+
+            } else if (data?.type === 'conversation') {
+                // 收到别人发给自己的私信
+                appendMessage('conversation', data.content, data.source);
+                actions = data.action || [];
+                actions.forEach(item => {
+                  targets[item] = data[item];
+                });
+                enableAct()
+            } else if (data?.type === 'act') {
+                // 收到行动提示
+                appendMessage('act', data.content);
+                actions = data.action || [];
+                actions.forEach(item => {
+                  targets[item] = data[item];
+                });
+                alivePlayers = data.alive || [];
+                enableAct();
+
+            } else if (data?.type === 'voting'){
+                // 收到投票提示
+                appendMessage('voting', data.content);
+                votes = data.voting || [];
+                actions = data.action || [];
+                alivePlayers = data.alive || []; // 更新存活玩家列表
+                enableVote();
+
+            } else if (data?.type === 'finish') {
+              appendMessage('display', `游戏结束！胜利方：${data.winner}`);
+              closeGame();
+            }
+
+        } catch (e) {
+            console.error("处理SSE消息时出错:", e, "原始数据:", event.data);
+        }
+      };
+
+      eventSource.onerror = function (err) {
+        console.error('SSE 连接出错:', err);
+        // eventSource.close(); // 通常不需要主动关闭，浏览器会自动重试
+      };
+    }
+
+    // 提交按钮
+    submitBtn.addEventListener('click', async () => {
+      if (!gameId) {
+          alert('请先开始游戏');
+          return;
+      }
+
+      const action = actionSelect.value;
+      const target = targetSelect.value ? parseInt(targetSelect.value) : null;
+      const vote = voteSelect.value ? parseInt(voteSelect.value) : null;
+      const content = speakInput.value.trim();
+      console.log('行动', action)
+      console.log('目标', target)
+      console.log('投票目标', vote)
+      console.log('内容', content)
+      console.log('action', actionSelect.disabled)
+      console.log('vote', voteSelect.disabled)
+
+      let eventToSend = {etype: 'NONE'};
+
+      // 优先级：投票 > 行动 > 发言
+      if (voteSelect.disabled === false && vote && !isNaN(vote)) {
+        eventToSend = {etype: 'VOTE', source: 6, target: vote, reason: content || '投票决定'};
+      } else if (actionSelect.disabled === false && action) {
+        if (action === 'conversation' && target && !isNaN(target) && content) {
+          appendMessage('user', content);
+          eventToSend = {etype: 'CONVERSATION', source: 6, target: target, content: content};
+        } else if (action === 'kill' && target && !isNaN(target)) {
+          eventToSend = {etype: 'KILL', source: 6, target: target, reason: '狼人杀人'};
+        } else if (action === 'resurrection' && target && !isNaN(target)) {
+          eventToSend = {etype: 'RESURRECTION', source: 6, target: target, reason: '女巫救人'};
+        } else if (action === 'check' && target && !isNaN(target)) {
+          eventToSend = {etype: 'CHECK', source: 6, target: target, reason: '查验身份'};
+        } else if (action === 'none') {
+            eventToSend = {etype: 'NONE'}; // 明确发送 NONE 事件
+        }
+      } else if (speakInput.disabled === false && content) { // 发言
+        eventToSend = {etype: 'SPEAK', content: content};
+        appendMessage('user', content); // 立即在本地显示用户发言
+      } else {
+          alert('请选择有效的操作或输入内容');
+          return;
+      }
+
+      try {
+        const response = await fetch(url + `/game/send/${gameId}`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(eventToSend)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+        }
+
+        // 清空输入和选择
+        if (eventToSend.etype === 'SPEAK' || eventToSend.etype === 'CONVERSATION') {
+            speakInput.value = '';
+        }
+        // 可以选择在提交后禁用操作，等待下一个指令
+        disableAll();
+      } catch (err) {
+        alert('发送失败: ' + err.message);
+        console.error('发送事件错误:', err);
+      }
+    });
+
+    // 绑定按钮
+    startBtn.addEventListener('click', () => {
+      startGame();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      resetGame();
+    });
+
+    endBtn.addEventListener('click', endGame);
+    reviewBtn.addEventListener('click', reviewGame);
+
+    // 初始化禁用状态
+    window.addEventListener('DOMContentLoaded', (event) => {
+        initGameState();
+    });
+  </script>
+</body>
+</html>
+
+
+
