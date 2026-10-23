@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-atmosphere="lobby" data-phase="lobby">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>狼人杀</title>
+  <link rel="stylesheet" href="/static/style.css?v=2" />
+</head>
+<body>
+  <div class="sky" aria-hidden="true">
+    <div class="sun"></div>
+    <div class="moon"></div>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <img src="/static/werewolf.png" alt="狼头" />
+        <div>
+          <h1>狼人杀</h1>
+          <p id="statusLine">未开始游戏</p>
+        </div>
+      </div>
+
+      <div class="phase-board">
+        <div class="day-card">
+          <span>第</span>
+          <strong id="dayNum">—</strong>
+          <span>天</span>
+        </div>
+        <div class="phase-chip" id="phaseChip" data-phase="lobby">等待开局</div>
+        <div class="alive-chip" id="aliveChip">存活 —</div>
+      </div>
+
+      <div class="role-board" id="roleBoard" data-role="none">
+        <span class="role-kicker">你的身份</span>
+        <strong id="roleName">未发牌</strong>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" id="startBtn" class="btn btn-primary">开始游戏</button>
+        <button type="button" id="resetBtn" class="btn btn-ghost" disabled>重新开始</button>
+        <button type="button" id="endBtn" class="btn btn-danger" disabled>结束游戏</button>
+        <button type="button" id="reviewBtn" class="btn btn-review" disabled>复盘</button>
+      </div>
+    </header>
+
+    <main class="table">
+      <aside class="rail" aria-label="玩家座位">
+        <div class="rail-head">
+          <h2>座位</h2>
+          <p id="seatStat">等待入座</p>
+        </div>
+        <div id="seatList" class="seat-list" role="list"></div>
+        <p class="rail-note">金边是你，灰章是出局。</p>
+      </aside>
+
+      <section class="ledger" aria-label="战报">
+        <div class="ledger-head">
+          <h2>战报</h2>
+          <p>夜晚、发言与投票</p>
+        </div>
+        <div id="log" class="log" tabindex="0"></div>
+      </section>
+
+      <aside class="tray" aria-label="本回合行动">
+        <div class="tray-head">
+          <p id="actionKicker" class="kicker">牌桌</p>
+          <h2 id="actionTitle">尚未开局</h2>
+        </div>
+        <div id="actionBody" class="tray-body"></div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="backdrop" class="backdrop"></div>
+  <aside id="reviewDrawer" class="drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="reviewTitle">
+    <div class="drawer-head">
+      <div>
+        <h2 id="reviewTitle">复盘</h2>
+        <p id="reviewMeta">本局记录</p>
+      </div>
+      <div class="drawer-actions">
+        <button type="button" id="reviewRefresh" class="btn btn-ghost">刷新</button>
+        <button type="button" id="reviewClose" class="btn btn-primary">关闭</button>
+      </div>
+    </div>
+    <div id="reviewList" class="review-list"></div>
+  </aside>
+
+  <div id="phaseBanner" class="phase-banner" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="/static/app.js?v=2"></script>
+</body>
+</html>
