@@ -63,7 +63,7 @@ def sse_event(data: dict, event_name: str = None) -> str:
 
 @app.get("/index")
 async def index():
-    return FileResponse('../frontend/qwen.html')
+    return FileResponse('../frontend/index.html')
 @app.get("/game/start")
 async def start_game():
     """开始新游戏"""
