@@ -73,7 +73,15 @@ class GameState(BaseModel):
         self.speak_order = self.alive_players.copy()
         self.events = self.must_event_every_day()
 
+    def sync_rosters(self):
+        # 发言、投票、夜间行动只保留存活玩家，并维持原有相对顺序
+        self.alive_players = [p.id for p in self.players if p.alive]
+        alive = set(self.alive_players)
+        self.speak_order = [pid for pid in self.speak_order if pid in alive]
+        self.act_order = [pid for pid in self.act_order if pid in alive]
+
     def must_event_every_day(self):
+        self.sync_rosters()
         return [PhaseChangeEvent(day=self.day, phase=Phase.NIGHT, change=Phase.DAY)] + \
             [AllowActEvent(day=self.day, phase=Phase.NIGHT, target=i) for i in reversed(self.act_order)] + \
             [DisplayEvent(day=self.day, phase=Phase.NIGHT,
@@ -83,6 +91,7 @@ class GameState(BaseModel):
         self.events.append(event)
 
     def when_day_event(self):
+        self.sync_rosters()
         self.events = [PhaseChangeEvent(day=self.day, phase=Phase.VOTING, change=Phase.COUNT_VOTES)] + \
                       [AllowVoteEvent(day=self.day, phase=Phase.VOTING, target=i) for i in reversed(self.speak_order)] + \
                       [DisplayEvent(day=self.day, phase=Phase.VOTING, content=f"现在是投票环节")] + \
@@ -122,8 +131,7 @@ class GameState(BaseModel):
         for player in self.players:
             if player.id in self.just_killed:
                 player.alive = False
-        self.act_order = [pid for pid in self.act_order if pid not in self.just_killed]
-        self.alive_players = [p.id for p in self.players if p.alive]
+        self.sync_rosters()
 
     def vote(self, pid):
         self.votes[pid - 1] += 1
@@ -133,7 +141,7 @@ class GameState(BaseModel):
         for player in self.players:
             if player.id == self.out:
                 player.alive = False
-        self.alive_players = [p.id for p in self.players if p.alive]
+        self.sync_rosters()
 
     def next_day(self):
         self.day += 1
